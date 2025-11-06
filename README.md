@@ -78,3 +78,81 @@ Run export_onnx.py to generate an ONNX file
 ```bash
 python export_onnx.py
 ```
+
+### 📊 Evaluation Results
+
+## 📊 Evaluation Results (YOLOv11 `.pt` Model on Test Dataset)
+
+The YOLOv11 model (`.pt` version) was evaluated directly on the test dataset.  
+Below are the summarized detection metrics:
+
+| Metric | Score |
+|:--|:--:|
+| **mAP@0.5** | **0.887** |
+| **mAP@0.5:0.95** | **0.692** |
+| **Mean Precision (μ)** | **0.861** |
+| **Mean Recall (μ)** | **0.842** |
+
+⏱️ **Total Evaluation Time:** 9.26 seconds  
+📁 **Results saved to:** `runs/evaluation`
+
+---
+
+### 🧩 Per-Class Performance
+
+| Class | Images | Instances | Precision (P) | Recall (R) | mAP@0.5 | mAP@0.5:0.95 |
+|:--|:--:|:--:|:--:|:--:|:--:|:--:|
+| **stop-sign** | 49 | 49 | 0.978 | 0.888 | 0.977 | 0.706 |
+| **stop-sign-vandalized** | 16 | 16 | 0.863 | 0.786 | 0.799 | 0.633 |
+| **traffic barrel** | 101 | 198 | 0.802 | 0.859 | 0.886 | 0.689 |
+| **traffic cone** | 86 | 86 | 0.989 | 1.000 | 0.995 | 0.982 |
+| **car-tire** | 103 | 154 | 0.976 | 0.777 | 0.922 | 0.647 |
+| **pedestrian** | 6 | 27 | 0.558 | 0.741 | 0.741 | 0.497 |
+
+---
+
+### ⚙️ Inference Performance
+
+Average Inference Time : 23.19 ms/image
+Frames Per Second (FPS): 43.13
+
+## 🎥 Camera Evaluation Statistics
+
+| Metric | Value |
+|:--|:--:|
+| **Total Frames Processed** | **522** |
+| **Total Time** | **54.84 seconds** |
+| **Average Inference Time** | **21.06 ms** |
+| **Average FPS** | **47.48** |
+| **Minimum Inference Time** | **13.00 ms** |
+| **Maximum Inference Time** | **1546.20 ms** |
+
+
+## ONNX Model
+
+The trained YOLOv11 ONNX model was evaluated on the test dataset.  
+Below are the summarized detection metrics:
+
+| Metric | Score |
+|:--|:--:|
+| **mAP@0.5** | **0.8778** |
+| **mAP@0.5:0.95** | **0.7092** |
+| **Mean Precision** | **0.8741** |
+| **Mean Recall** | **0.8288** |
+
+---
+
+## Per-Class Performance
+
+| Class | Images | Instances | Precision (P) | Recall (R) | mAP@0.5 | mAP@0.5:0.95 |
+|:--|:--:|:--:|:--:|:--:|:--:|:--:|
+| **stop-sign** | 49 | 49 | 0.977 | 0.878 | 0.937 | 0.688 |
+| **stop-sign-vandalized** | 16 | 16 | 0.857 | 0.750 | 0.824 | 0.664 |
+| **traffic barrel** | 101 | 198 | 0.829 | 0.843 | 0.882 | 0.723 |
+| **traffic cone** | 86 | 86 | 1.000 | 1.000 | 0.995 | 0.983 |
+| **car-tire** | 103 | 154 | 0.975 | 0.761 | 0.871 | 0.650 |
+| **pedestrian** | 6 | 27 | 0.606 | 0.741 | 0.758 | 0.546 |
+
+---
+
+## Latency: 0.2 MS

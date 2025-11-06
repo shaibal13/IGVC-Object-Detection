@@ -1,240 +1,350 @@
-# import argparse, random, yaml, cv2
-# from pathlib import Path
-# from ultralytics import YOLO
-
-# def main(args):
-#     # Handle rectangular or square inference size
-#     # args.imgsz comes in as a list: [sz] or [h, w]
-#     if len(args.imgsz) == 1:
-#         imgsz = args.imgsz[0]
-#     elif len(args.imgsz) == 2:
-#         imgsz = (args.imgsz[0], args.imgsz[1])
-#     else:
-#         raise ValueError("--imgsz must be one int or two ints (height width)")
-
-#     # Load data.yaml 
-    
-#     data = yaml.safe_load(open(args.data))
-#     test_dir = Path(data['path']) / data['test']
-#     names    = data['names']
-
-#     # Load model
-#     model = YOLO(args.weights)
-
-#     # Evaluate
-#     print("Evaluation")
-#     print(args.imgsz)
-#     results = model.val(
-#         data=args.data,
-#         split='test',      
-#         imgsz=args.imgsz,
-#         batch=args.batch,
-#         verbose=True,
-#         save=True,         # save annotated test images
-#         project=args.project,
-#         name=args.name
-#     )
-
-#     # Extract detection metrics 
-#     precs    = results.box.p            # per-class precision list
-#     recs     = results.box.r            # per-class recall list
-#     map50    = results.box.map50        
-#     map50_95 = results.box.map          
-
-#     print("\n— Test set metrics —")
-#     print(f" mAP@0.5       : {map50:.3f}")
-#     print(f" mAP@0.5:0.95  : {map50_95:.3f}")
-#     print(f" Precision: {sum(precs)/len(precs):.3f}")
-#     print(f" Recall: {sum(recs)/len(recs):.3f}")
-
-#     # Gather all test images 
-#     all_imgs = [p for p in test_dir.rglob('*') if p.suffix.lower() in ('.jpg', '.jpeg', '.png')]
-#     print(f"Found {len(all_imgs)} images in {test_dir}")
-#     if not all_imgs:
-#         return
-
-#     # Process all images
-#     sampled = all_imgs
-#     print(f"\n Processing {len(sampled)} test images …")
-
-#     # Directory for visualizations
-#     out_dir = Path("runs/predict/sample_test_x3")
-#     out_dir.mkdir(parents=True, exist_ok=True)
-#     for img_path in sampled:
-#         img = cv2.imread(str(img_path))
-#         if img is not None:
-#             h, w, c = img.shape
-#             print(f"Processing {img_path.name}: original shape = ({h}, {w}, {c})")
-#         else:
-#             print(f"Could not load {img_path.name}")
-#         # Inference + save annotated samples
-#         for img_path in sampled:
-#             res = model.predict(
-#                 source=str(img_path),
-#                 imgsz=args.imgsz,
-#                 conf=args.conf,
-#                 iou=args.iou,
-#                 verbose=False
-#             )[0]
-
-#             vis = res.plot()  # annotated OpenCV image
-#             save_path = out_dir / f"{img_path.stem}.jpg"
-#             cv2.imwrite(str(save_path), vis)
-#             print(f"   • {img_path.name} → {save_path}")
-
-#     print(f"\n Done!")
-
-# if __name__ == "__main__":
-#     parser = argparse.ArgumentParser(description="Evaluate and visualize YOLOv11 test set outputs")
-#     parser.add_argument("--data",    type=str, required=True,
-#                         help="Path to your data.yaml")
-#     parser.add_argument("--weights", type=str, required=True,
-#                         help="Path to your trained .pt weights file")
-#     parser.add_argument(
-#         "--imgsz",
-#         nargs='+',
-#         type=int,
-#         default=[640],
-#         help="Inference image size: one int for square or two ints 'height width' for rectangular"
-#     )
-#     parser.add_argument("--batch",   type=int, default=8,
-#                         help="Batch size for evaluation")
-#     parser.add_argument("--conf",    type=float, default=0.25,
-#                         help="Confidence threshold for predictions")
-#     parser.add_argument("--iou",     type=float, default=0.45,
-#                         help="NMS IoU threshold for predictions")
-#     parser.add_argument("--project", type=str, default="runs",
-#                         help="Base folder for saved images")
-#     parser.add_argument("--name",    type=str, default="test_preds",
-#                         help="Subfolder name under project for saved images")
-#     args = parser.parse_args()
-#     main(args)
-
-
-"""
-Evaluate a YOLOv11 model on your test split using camera-resolution inference,
-then visualize detections on upscaled test images so you can ensure performance
-on 1280×720 frames, even though the model was trained on 640×640.
-
-Usage:
-    python test_up.py \
-      --data Dataset/data.yaml \
-      --weights runs/train2/custom_run/weights/best.pt \
-      --imgsz 720 1280 \
-      --batch 8 \
-      --conf 0.25 \
-      --iou 0.45 \
-      --num 20 \
-      --project runs \
-      --name sample_test_x2
-"""
 import argparse
+import time
+import random
 import yaml
 import cv2
-import random
 from pathlib import Path
 from ultralytics import YOLO
 
-def parse_args():
-    parser = argparse.ArgumentParser(description="Test YOLOv11 camera pipeline and visualize detections")
-    parser.add_argument("--data",    type=str, required=True, help="Path to data.yaml")
-    parser.add_argument("--weights", type=str, required=True, help="Path to trained .pt weights")
-    parser.add_argument("--imgsz", nargs='+', type=int, default=[640],
-                        help="Inference size: one int or two ints 'height width'")
-    parser.add_argument("--batch",   type=int, default=8, help="Batch size for evaluation")
-    parser.add_argument("--conf",    type=float, default=0.25, help="Confidence threshold")
-    parser.add_argument("--iou",     type=float, default=0.45, help="NMS IoU threshold")
-    parser.add_argument("--num",     type=int, default=10, help="Number of samples to visualize")
-    parser.add_argument("--project", type=str, default="runs", help="Base folder for outputs")
-    parser.add_argument("--name",    type=str, default="sample_test_x2", help="Sub-folder name under project")
-    return parser.parse_args()
 
-if __name__ == "__main__":
-    args = parse_args()
+def evaluate_single_image(model, image_path, args):
+    """Evaluate on a single image."""
+    print(f"\n{'='*60}")
+    print(f"Evaluating single image: {image_path}")
+    print(f"{'='*60}")
+    
+    img_path = Path(image_path)
+    if not img_path.exists():
+        print(f"Error: Image not found at {image_path}")
+        return
+    
+    # Run inference with timing
+    start_time = time.time()
+    results = model.predict(
+        source=str(img_path),
+        imgsz=args.imgsz,
+        conf=args.conf,
+        iou=args.iou,
+        verbose=False
+    )[0]
+    inference_time = time.time() - start_time
+    
+    # Get detection info
+    num_detections = len(results.boxes) if results.boxes is not None else 0
+    print(f"\nInference Time: {inference_time*1000:.2f} ms")
+    print(f"Number of detections: {num_detections}")
+    
+    if num_detections > 0:
+        print("\nDetections:")
+        for i, box in enumerate(results.boxes):
+            cls_id = int(box.cls[0])
+            conf = float(box.conf[0])
+            label = model.names[cls_id]
+            print(f"  {i+1}. {label}: {conf:.3f}")
+    
+    # Save annotated image
+    out_dir = Path(args.output_dir) if args.output_dir else Path("runs/predict/single_image")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    vis = results.plot()
+    save_path = out_dir / f"{img_path.stem}_result.jpg"
+    cv2.imwrite(str(save_path), vis)
+    print(f"\nAnnotated image saved to: {save_path}")
+    
+    return inference_time
 
-    # determine inference shape
-    if len(args.imgsz) == 1:
-        H = W = args.imgsz[0]
-        imgsz = H
-        rect = False
-    elif len(args.imgsz) == 2:
-        H, W = args.imgsz
-        imgsz = (H, W)
-        rect = True
-    else:
-        raise ValueError("--imgsz must be one int or two ints: height width")
 
-    # load dataset config and test directory
-    data = yaml.safe_load(open(args.data))
+def evaluate_dataset(model, data_path, args):
+    """Evaluate on dataset using model.val() and show metrics."""
+    print(f"\n{'='*60}")
+    print(f"Evaluating on dataset: {data_path}")
+    print(f"{'='*60}")
+    
+    # Load data.yaml to get test folder & class names
+    data = yaml.safe_load(open(data_path))
     test_dir = Path(data['path']) / data['test']
-
-    # load model
-    model = YOLO(args.weights)
-
-    # 1) quantitative evaluation on test split with camera resolution
-    print(f" Evaluating TEST split at imgsz={imgsz}, rect={rect} …")
+    names = data['names']
+    
+    # Evaluate on the full test set and print metrics
+    print("\nRunning full test evaluation...")
+    start_time = time.time()
     results = model.val(
-        data=args.data,
+        data=data_path,
         split='test',
-        imgsz=imgsz,
-        rect=rect,
+        imgsz=args.imgsz,
         batch=args.batch,
         verbose=True,
-        save=False
+        save=True,
+        project=args.project,
+        name=args.name
     )
-    # extract metrics
+    total_eval_time = time.time() - start_time
+    
+    # Extract detection metrics
     precs = results.box.p
-    recs  = results.box.r
-    mAP50 = results.box.map50
-    mAP   = results.box.map
-    print("\n— TEST metrics —")
-    print(f" mAP@0.5      : {mAP50:.3f}")
-    print(f" mAP@0.5:0.95 : {mAP:.3f}")
-    print(f" Precision μ : {sum(precs)/len(precs):.3f}")
-    print(f" Recall    μ : {sum(recs)/len(recs):.3f}\n")
-
-    # 2) visual check: sample and upscale to camera size
+    recs = results.box.r
+    map50 = results.box.map50
+    map50_95 = results.box.map
+    
+    print(f"\n{'='*60}")
+    print("EVALUATION RESULTS")
+    print(f"{'='*60}")
+    print(f"Total Evaluation Time: {total_eval_time:.2f} seconds")
+    print(f"mAP@0.5       : {map50:.3f}")
+    print(f"mAP@0.5:0.95  : {map50_95:.3f}")
+    print(f"Precision (μ) : {sum(precs)/len(precs):.3f}")
+    print(f"Recall (μ)    : {sum(recs)/len(recs):.3f}")
+    
+    # Per-class metrics
+    if len(names) > 0:
+        print(f"\nPer-class metrics:")
+        for i, name in enumerate(names):
+            if i < len(precs):
+                print(f"  {name}: Precision={precs[i]:.3f}, Recall={recs[i]:.3f}")
+    
+    # Gather all test images recursively
     all_imgs = [p for p in test_dir.rglob('*') if p.suffix.lower() in ('.jpg', '.jpeg', '.png')]
-    print(f" Found {len(all_imgs)} test images in {test_dir}")
-    if not all_imgs:
-        exit(0)
+    print(f"\nFound {len(all_imgs)} images in {test_dir}")
+    
+    if all_imgs and args.sample_images > 0:
+        # Sample images for visualization
+        if len(all_imgs) >= args.sample_images:
+            sampled = random.sample(all_imgs, args.sample_images)
+        else:
+            sampled = random.choices(all_imgs, k=args.sample_images)
+        
+        # Directory for sampled visualizations
+        out_dir = Path(args.project) / args.name / "samples"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Inference + save annotated samples with timing
+        print(f"\nProcessing {len(sampled)} sample images for visualization...")
+        inference_times = []
+        
+        for img_path in sampled:
+            start_time = time.time()
+            res = model.predict(
+                source=str(img_path),
+                imgsz=args.imgsz,
+                conf=args.conf,
+                iou=args.iou,
+                verbose=False
+            )[0]
+            inference_time = time.time() - start_time
+            inference_times.append(inference_time)
+            
+            vis = res.plot()
+            save_path = out_dir / f"{img_path.stem}.jpg"
+            cv2.imwrite(str(save_path), vis)
+            print(f"  • {img_path.name} → {save_path} ({inference_time*1000:.2f} ms)")
+        
+        avg_inference_time = sum(inference_times) / len(inference_times) if inference_times else 0
+        print(f"\nAverage inference time per image: {avg_inference_time*1000:.2f} ms")
+        print(f"FPS: {1.0/avg_inference_time:.2f}" if avg_inference_time > 0 else "N/A")
+    
+    print(f"\nDone! Results saved in {args.project}/{args.name}")
+    
+    return {
+        'map50': map50,
+        'map50_95': map50_95,
+        'precision': sum(precs)/len(precs),
+        'recall': sum(recs)/len(recs),
+        'total_time': total_eval_time
+    }
 
-    sampled = random.sample(all_imgs, min(len(all_imgs), args.num))
 
-    out_dir = Path("runs/predict/sample_test_x5")
-    out_dir.mkdir(parents=True, exist_ok=True)
-    print(f" Visualizing {len(sampled)} upscaled frames to {out_dir} …")
+def evaluate_camera(model, args):
+    """Evaluate on live camera feed."""
+    print(f"\n{'='*60}")
+    print("Starting live camera evaluation")
+    print(f"{'='*60}")
+    print("Press ESC to quit")
+    
+    # Open camera
+    cap = cv2.VideoCapture(args.camera_index)
+    if not cap.isOpened():
+        print(f"Error: Could not open camera {args.camera_index}")
+        return
+    
+    # Set camera resolution
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, args.camera_width)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, args.camera_height)
+    
+    # Determine imgsz
+    if isinstance(args.imgsz, (list, tuple)) and len(args.imgsz) == 2:
+        imgsz = tuple(args.imgsz)
+    elif isinstance(args.imgsz, (list, tuple)) and len(args.imgsz) == 1:
+        imgsz = args.imgsz[0]
+    else:
+        imgsz = args.imgsz
+    
+    print(f"Camera resolution: {args.camera_width}x{args.camera_height}")
+    print(f"Inference size: {imgsz}")
+    
+    frame_count = 0
+    inference_times = []
+    fps_start_time = time.time()
+    
+    try:
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                print("Error: Could not read frame from camera")
+                break
+            
+            # Run inference with timing
+            start_time = time.time()
+            results = model.predict(
+                source=frame,
+                imgsz=imgsz,
+                conf=args.conf,
+                iou=args.iou,
+                device=args.device,
+                verbose=False
+            )[0]
+            inference_time = time.time() - start_time
+            inference_times.append(inference_time)
+            frame_count += 1
+            
+            # Draw boxes on the frame
+            for box in results.boxes:
+                x1, y1, x2, y2 = map(int, box.xyxy[0])
+                cls_id = int(box.cls[0])
+                conf = float(box.conf[0])
+                label = f"{model.names[cls_id]} {conf:.2f}"
+                
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                text_y = y1 - 10 if y1 - 10 > 10 else y1 + 20
+                cv2.putText(frame, label, (x1, text_y),
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+            
+            # Display FPS and inference time
+            current_fps = 1.0 / inference_time if inference_time > 0 else 0
+            avg_inference_time = sum(inference_times[-30:]) / len(inference_times[-30:]) if len(inference_times) > 0 else 0
+            avg_fps = 1.0 / avg_inference_time if avg_inference_time > 0 else 0
+            
+            info_text = f"FPS: {current_fps:.1f} | Avg FPS: {avg_fps:.1f} | Time: {inference_time*1000:.1f}ms"
+            cv2.putText(frame, info_text, (10, 30),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
+            
+            # Show the annotated frame
+            cv2.imshow("YOLOv11 Live Detection", frame)
+            
+            # ESC to quit
+            if cv2.waitKey(1) == 27:
+                break
+    
+    except KeyboardInterrupt:
+        print("\nInterrupted by user")
+    
+    finally:
+        cap.release()
+        cv2.destroyAllWindows()
+        
+        # Print statistics
+        if inference_times:
+            avg_time = sum(inference_times) / len(inference_times)
+            total_time = time.time() - fps_start_time
+            print(f"\n{'='*60}")
+            print("CAMERA EVALUATION STATISTICS")
+            print(f"{'='*60}")
+            print(f"Total frames processed: {frame_count}")
+            print(f"Total time: {total_time:.2f} seconds")
+            print(f"Average inference time: {avg_time*1000:.2f} ms")
+            print(f"Average FPS: {1.0/avg_time:.2f}")
+            print(f"Min inference time: {min(inference_times)*1000:.2f} ms")
+            print(f"Max inference time: {max(inference_times)*1000:.2f} ms")
 
-    for img_path in sampled:
-        orig = cv2.imread(str(img_path))
-        if orig is None:
-            print(f" Cannot read {img_path}")
-            continue
-        # upscale to camera resolution
-        frame = cv2.resize(orig, (W, H))  # (width, height)
-        print(f"Processing {img_path.name}: upscaled to ({H},{W},{frame.shape[2]})")
 
-        # inference
-        res = model.predict(
-            source=frame,
-            imgsz=imgsz,
-            conf=args.conf,
-            iou=args.iou,
-            verbose=False
-        )[0]
+def main():
+    parser = argparse.ArgumentParser(
+        description=" YOLOv11 evaluation tool - supports single image, dataset, and live camera",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Single image
+  python evaluate.py --weights model.pt --image path/to/image.jpg
+  
+  # Dataset evaluation
+  python evaluate.py --weights model.pt --dataset Dataset/data.yaml
+  python evaluate.py --weights /media/shaibal/FILES/IGVC-Object-Detection/train2/custom_run/weights/best.pt --dataset /media/shaibal/FILES/IGVC-Object-Detection/Dataset/data.yaml
+  # Live camera
+  python evaluate.py --weights model.pt --camera
+  python evaluate.py --weights /media/shaibal/FILES/IGVC-Object-Detection/train2/custom_run/weights/best.pt --camera
+        """
+    )
+    
+    # Required arguments
+    parser.add_argument("--weights", type=str, required=True,
+                       help="Path to trained .pt weights file")
+    
+    # Mode selection (mutually exclusive)
+    mode_group = parser.add_mutually_exclusive_group(required=True)
+    mode_group.add_argument("--image", type=str,
+                           help="Path to single image for evaluation")
+    mode_group.add_argument("--dataset", type=str,
+                           help="Path to data.yaml for dataset evaluation")
+    mode_group.add_argument("--camera", action="store_true",
+                           help="Use live camera feed")
+    
+    # Model parameters
+    parser.add_argument("--imgsz", type=int, nargs='+', default=[640],
+                       help="Inference image size: one int for square or two ints 'height width' for rectangular")
+    parser.add_argument("--conf", type=float, default=0.25,
+                       help="Confidence threshold for predictions")
+    parser.add_argument("--iou", type=float, default=0.45,
+                       help="NMS IoU threshold for predictions")
+    parser.add_argument("--device", type=str, default="",
+                       help="Device to run inference on (e.g., '0' for GPU, 'cpu' for CPU)")
+    
+    # Dataset-specific arguments
+    parser.add_argument("--batch", type=int, default=8,
+                       help="Batch size for dataset evaluation")
+    parser.add_argument("--sample_images", type=int, default=10,
+                       help="Number of sample images to visualize for dataset evaluation")
+    parser.add_argument("--project", type=str, default="runs",
+                       help="Base folder for saved results")
+    parser.add_argument("--name", type=str, default="evaluation",
+                       help="Subfolder name under project for saved results")
+    
+    # Camera-specific arguments
+    parser.add_argument("--camera_index", type=int, default=0,
+                       help="Camera index (default: 0)")
+    parser.add_argument("--camera_width", type=int, default=1280,
+                       help="Camera frame width")
+    parser.add_argument("--camera_height", type=int, default=720,
+                       help="Camera frame height")
+    
+    # Output arguments
+    parser.add_argument("--output_dir", type=str, default=None,
+                       help="Output directory for single image results")
+    
+    args = parser.parse_args()
+    
+    # Load model
+    print(f"Loading model from {args.weights}...")
+    model = YOLO(args.weights)
+    print("Model loaded successfully!")
+    
+    # Process imgsz argument
+    if isinstance(args.imgsz, list):
+        if len(args.imgsz) == 1:
+            args.imgsz = args.imgsz[0]
+        elif len(args.imgsz) == 2:
+            args.imgsz = tuple(args.imgsz)
+        else:
+            raise ValueError("--imgsz must be one int or two ints (height width)")
+    
+    # Route to appropriate evaluation function
+    if args.camera:
+        evaluate_camera(model, args)
+    elif args.dataset:
+        evaluate_dataset(model, args.dataset, args)
+    elif args.image:
+        evaluate_single_image(model, args.image, args)
+    else:
+        parser.error("Must specify one of: --image, --dataset, or --camera")
 
-        # draw boxes and labels
-        for box in res.boxes:
-            x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
-            cls_id = int(box.cls[0])
-            conf_score = float(box.conf[0])
-            label = f"{model.names[cls_id]} {conf_score:.2f}"
-            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            text_y = y1 - 10 if y1 - 10 > 10 else y1 + 20
-            cv2.putText(frame, label, (x1, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
 
-        out_path = out_dir / img_path.name
-        cv2.imwrite(str(out_path), frame)
-        print(f"   • saved {out_path}")
+if __name__ == "__main__":
+    main()
 
-    print("\n Done!")
