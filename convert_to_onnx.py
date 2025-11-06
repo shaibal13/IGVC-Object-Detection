@@ -22,12 +22,7 @@ Usage Examples:
         --dynamic \
         --simplify \
         --half
-    # Full example without dynamic
-    python convert_to_onnx.py \
-        --weights --weights model.pt  \
-        --imgsz 640 \
-        --simplify \
-        --half
+
 """
 
 from ultralytics import YOLO
