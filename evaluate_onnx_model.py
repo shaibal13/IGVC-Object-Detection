@@ -9,8 +9,8 @@ Usage Examples:
     
     # Full example with all options
     python evaluate_onnx_model.py \
-        --data /media/shaibal/FILES/Yolov11/Dataset/data.yaml \
-        --weights runs/train2/custom_run/weights/best.onnx \
+        --data /path/to/data.yaml \
+        --weights /path/to/model.onnx \
         --imgsz 640 \
         --batch 8 \
         --conf 0.25 \
@@ -61,6 +61,16 @@ def main(args):
     map50 = results.box.map50  # mAP @ IoU=0.5
     map50_95 = results.box.map  # mAP @ IoU=0.5:0.95
 
+    # Extract speed metrics
+    speed = results.speed
+    # Speed dict contains: 'preprocess', 'inference', 'postprocess' in ms
+    inference_time_ms = speed.get('inference', 0)  # Average inference time per image in ms
+    total_time_ms = speed.get('preprocess', 0) + speed.get('inference', 0) + speed.get('postprocess', 0)
+    avg_inference_time_ms = inference_time_ms if inference_time_ms > 0 else total_time_ms
+    
+    # Calculate FPS
+    fps = 1000.0 / avg_inference_time_ms if avg_inference_time_ms > 0 else 0
+
     # Convert to numpy arrays if needed
     precs = np.array(precs) if not isinstance(precs, np.ndarray) else precs
     recs = np.array(recs) if not isinstance(recs, np.ndarray) else recs
@@ -73,6 +83,10 @@ def main(args):
     print(f"mAP@0.5:0.95 : {map50_95:.4f}")
     print(f"Mean Precision: {np.mean(precs):.4f}")
     print(f"Mean Recall    : {np.mean(recs):.4f}")
+    print("-"*50)
+    print("Inference Performance")
+    print(f"Average Inference Time: {avg_inference_time_ms:.2f} ms/image")
+    print(f"Frames Per Second (FPS): {fps:.2f}")
     print("="*50)
 
     # Create visualization graphs
@@ -166,6 +180,8 @@ def main(args):
         ['Best Recall', f'{np.max(recs):.4f}'],
         ['Worst Precision', f'{np.min(precs):.4f}'],
         ['Worst Recall', f'{np.min(recs):.4f}'],
+        ['Avg Inference Time', f'{avg_inference_time_ms:.2f} ms'],
+        ['FPS', f'{fps:.2f}'],
     ]
     table = ax6.table(cellText=table_data, cellLoc='left', loc='center',
                       colWidths=[0.5, 0.3])
@@ -208,6 +224,12 @@ def main(args):
     for i in range(len(precs)):
         class_name = class_names.get(i, f'Class {i}')
         print(f"{class_name:<25} {precs[i]:<12.4f} {recs[i]:<12.4f} {f1_scores[i]:<12.4f}")
+    print("="*50)
+    print("\n" + "="*50)
+    print("Inference Performance Summary")
+    print("="*50)
+    print(f"Average Inference Time: {avg_inference_time_ms:.2f} ms/image")
+    print(f"Frames Per Second (FPS): {fps:.2f}")
     print("="*50)
 
 

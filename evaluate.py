@@ -266,10 +266,10 @@ Examples:
   
   # Dataset evaluation
   python evaluate.py --weights model.pt --dataset Dataset/data.yaml
-  python evaluate.py --weights /media/shaibal/FILES/IGVC-Object-Detection/train2/custom_run/weights/best.pt --dataset /media/shaibal/FILES/IGVC-Object-Detection/Dataset/data.yaml
+  
   # Live camera
   python evaluate.py --weights model.pt --camera
-  python evaluate.py --weights /media/shaibal/FILES/IGVC-Object-Detection/train2/custom_run/weights/best.pt --camera
+
         """
     )
     

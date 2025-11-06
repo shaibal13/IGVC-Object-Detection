@@ -3,15 +3,29 @@ Export YOLO PyTorch model to ONNX format
 
 This script converts a trained YOLO .pt model to ONNX format for deployment.
 
+Performance Notes:
+    - ONNX models are typically 1.5-3x slower than PyTorch models (https://github.com/microsoft/onnxruntime/issues/12880) 
+      as we donot use TensorRT.
+    - Use --half for FP16 (2x faster on modern GPUs)
+    - Avoid --dynamic for fixed input sizes (faster)
+    - --simplify optimizes size, not necessarily speed
+    - For maximum speed, use PyTorch (.pt) or TensorRT (.engine)
+
 Usage Examples:
-    # Basic usage with required arguments
-    python convert_to_onnx.py --weights /path/to/model.pt
+    # Basic usage (fastest: fixed size, FP16)
+    python convert_to_onnx.py --weights /path/to/model.pt --imgsz 640 --half
     
-    # Full example with all options
+    # Full example with dynamic (Needed for real-time inference if the camera is wider than 640x640)
     python convert_to_onnx.py \
-        --weights runs/train2/custom_run/weights/best.pt \
+        --weights --weights model.pt  \
         --imgsz 640 \
         --dynamic \
+        --simplify \
+        --half
+    # Full example without dynamic
+    python convert_to_onnx.py \
+        --weights --weights model.pt  \
+        --imgsz 640 \
         --simplify \
         --half
 """
@@ -49,6 +63,12 @@ def main(args):
     
     # Export to ONNX
     print("Exporting model to ONNX format...")
+    print(f"Export settings: {export_kwargs}")
+    if args.dynamic:
+        print("Warning: Dynamic shapes may reduce performance")
+    if not args.half:
+        print(" Use --half for FP16 to improve speed (~2x faster on GPU)")
+    
     model.export(**export_kwargs)
     
     # Determine output filename
