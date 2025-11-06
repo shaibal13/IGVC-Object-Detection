@@ -56,34 +56,44 @@ python train.py \
   --name results
 ```
 ### 📂 Evaluation
-## Evaluate with Test Data
-Use test.py to evaluate the trained model:
+Use evaluate.py to evaluate the trained model:
+
+## Evaluate with Single Image
 ```bash
-python test.py \
-  --data Dataset/data.yaml \
+python evaluate.py --weights Pretrained_weights/weights/best.pt --image path/to/image.jpg
+```
+
+## Evaluate with Full Test Dataset
+```bash
+python evaluate.py \
   --weights Pretrained_weights/weights/best.pt \
-  --imgsz 720 1280 \
-  --batch 2 \
-  --conf 0.4 \
-  --iou 0.3
+  --dataset Dataset/data.yaml
 ```
 ## Real-time Object Detection Evaluation
-Run test_from_camera.py for real-time detection
+
 ```bash
-python test_from_camera.py
+python evaluate.py --weights Pretrained_weights/weights/best.pt --camera
+
 ```
 ## Generate an ONNX model to evaluate on edge devices
 
-Run export_onnx.py to generate an ONNX file
+## Export (For Dynamic settings, please look into the comments on convert_to_onnx.py)
+
 ```bash
-python export_onnx.py
+python convert_to_onnx.py --weights Pretrained_weights/weights/best.pt --imgsz 640 --half
+```
+
+## Evaluate ONNX Model
+
+```bash
+python evaluate_onnx_model.py --data Dataset/data.yaml -weights Pretrained_weights/weights/best.onnx
 ```
 
 ### 📊 Evaluation Results
 
-## 📊 Evaluation Results (YOLOv11 `.pt` Model on Test Dataset)
+## Evaluation Results on Test Dataset
 
-The YOLOv11 model (`.pt` version) was evaluated directly on the test dataset.  
+The trained YOLOv11 model (`.pt` version) was evaluated directly on the test dataset.  
 Below are the summarized detection metrics:
 
 | Metric | Score |
@@ -92,13 +102,9 @@ Below are the summarized detection metrics:
 | **mAP@0.5:0.95** | **0.692** |
 | **Mean Precision (μ)** | **0.861** |
 | **Mean Recall (μ)** | **0.842** |
-
-⏱️ **Total Evaluation Time:** 9.26 seconds  
-📁 **Results saved to:** `runs/evaluation`
-
 ---
 
-### 🧩 Per-Class Performance
+## Per-Class Performance
 
 | Class | Images | Instances | Precision (P) | Recall (R) | mAP@0.5 | mAP@0.5:0.95 |
 |:--|:--:|:--:|:--:|:--:|:--:|:--:|
@@ -108,15 +114,15 @@ Below are the summarized detection metrics:
 | **traffic cone** | 86 | 86 | 0.989 | 1.000 | 0.995 | 0.982 |
 | **car-tire** | 103 | 154 | 0.976 | 0.777 | 0.922 | 0.647 |
 | **pedestrian** | 6 | 27 | 0.558 | 0.741 | 0.741 | 0.497 |
-
+| **All** | 361 | 530 | 0.861 | 0.842 | 0.887 | 0.692 |
 ---
 
-### ⚙️ Inference Performance
+## Inference Performance
 
-Average Inference Time : 23.19 ms/image
-Frames Per Second (FPS): 43.13
+Average Inference Time: 22.58 ms/image \
+Frames Per Second (FPS): 44.28
 
-## 🎥 Camera Evaluation Statistics
+##  Real-time Evaluation
 
 | Metric | Value |
 |:--|:--:|
@@ -139,7 +145,6 @@ Below are the summarized detection metrics:
 | **mAP@0.5:0.95** | **0.7092** |
 | **Mean Precision** | **0.8741** |
 | **Mean Recall** | **0.8288** |
-
 ---
 
 ## Per-Class Performance
@@ -152,7 +157,9 @@ Below are the summarized detection metrics:
 | **traffic cone** | 86 | 86 | 1.000 | 1.000 | 0.995 | 0.983 |
 | **car-tire** | 103 | 154 | 0.975 | 0.761 | 0.871 | 0.650 |
 | **pedestrian** | 6 | 27 | 0.606 | 0.741 | 0.758 | 0.546 |
-
+| **All** | 361 | 530 | 0.878 | 0.773 | 0.849 | 0.666|
 ---
+## Inference Performance
+Average Inference Time: 21.58 ms/image \
+Frames Per Second (FPS): 46.34
 
-## Latency: 0.2 MS
