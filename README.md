@@ -1,6 +1,6 @@
 # IGVC-Object-Detection
 
-This repository contains scripts for training and evaluating a custom YOLOv11 model on our own dataset.
+This repository contains scripts for training and evaluating a custom YOLOv11 model on our own dataset. The model is used for the IGVC 2025 self-driving car model.
 
 ## 📂 Requirements
 
