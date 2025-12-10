@@ -93,18 +93,17 @@ python evaluate_onnx_model.py --data Dataset/data.yaml -weights Pretrained_weigh
 
 ## Evaluation Results on Test Dataset
 
-The trained YOLOv11 model (`.pt` version) was evaluated directly on the test dataset.  
+The trained YOLO model was evaluated directly on the test dataset.  
 Below are the summarized detection metrics:
 
-| Metric | Score |
-|:--|:--:|
-| **mAP@0.5** | **0.887** |
-| **mAP@0.5:0.95** | **0.692** |
-| **Mean Precision (μ)** | **0.861** |
-| **Mean Recall (μ)** | **0.842** |
+| Model      | mAP@0.5 | mAP@0.5:0.95 | Precision (μ) | Recall (μ) | Average inference time (ms/im) | FPS
+|-----------|:--------:|:------------:|:-------------:|:----------:|:----------:|:----------:|
+| YOLOv11x  | **0.887** | **0.692**   | **0.861**     | **0.842**  |**22.58** | **44.28** |
+| YOLOv11s  | **0.572** | **0.293**   | **0.756**     | **0.469**  | **10.09** | **99.10** |
+| YOLOv5s   | **0.517** | **0.244**   | **0.600**     | **0.579**  |**9.21** | **108.62** |
 ---
 
-## Per-Class Performance
+## Per-Class Performance (Yolov11x)
 
 | Class | Images | Instances | Precision (P) | Recall (R) | mAP@0.5 | mAP@0.5:0.95 |
 |:--|:--:|:--:|:--:|:--:|:--:|:--:|
@@ -116,6 +115,28 @@ Below are the summarized detection metrics:
 | **pedestrian** | 6 | 27 | 0.558 | 0.741 | 0.741 | 0.497 |
 | **All** | 361 | 530 | 0.861 | 0.842 | 0.887 | 0.692 |
 ---
+
+## Per-Class Performance (Yolov11s)
+| Class                   | Images | Instances | Precision | Recall | mAP@0.5 | mAP@0.5:0.95 |
+|------------------------|:------:|:---------:|:---------:|:------:|:-------:|:------------:|
+| **stop-sign**             |   49   |     49    |  0.964    | 0.469  |  0.779  |    0.496     |
+| **stop-sign-vandalized** |   16   |     16    |  0.718    | 0.250  |  0.351  |    0.158     |
+| **traffic barrel**        |  101   |    198    |  0.696    | 0.578  |  0.683  |    0.353     |
+| **traffic cone**         |   86   |     86    |  0.701    | 0.709  |  0.682  |    0.266     |
+|  **car-tire**               |  103   |    154    |  0.936    | 0.435  |  0.575  |    0.331     |
+| **pedestrian**             |    6   |     27    |  0.524    | 0.370  |  0.365  |    0.150     |
+| **All**        |  361   |    530    |  0.756    | 0.469  |  0.572  |    0.293     |
+---
+## Per-Class Performance (Yolov5s)
+| Class                   | Images | Instances | Precision | Recall | mAP@0.5 | mAP@0.5:0.95 |
+|------------------------|:------:|:---------:|:---------:|:------:|:-------:|:------------:|
+| **All**        |  361   |    530    |   0.600   |  0.579 |  0.517  |    0.244     |
+| **Stop Sign**              |   49   |     49    |   0.813   |  0.711 |  0.711  |    0.421     |
+| **Stop Sign (Vandalized)** |   16   |     16    |   0.548   |  0.375 |  0.384  |    0.191     |
+| **Traffic Barrel**         |  101   |    198    |   0.713   |  0.702 |  0.683  |    0.291     |
+| **Traffic Cone**           |   86   |     86    |   0.550   |  0.710 |  0.571  |    0.204     |
+|**Car Tire**               |  103   |    154    |   0.694   |  0.456 |  0.467  |    0.245     |
+| **Pedestrian**             |    6   |     27    |   0.281   |  0.522 |  0.288  |    0.112     |
 
 ## Inference Performance
 
@@ -159,7 +180,4 @@ Below are the summarized detection metrics:
 | **pedestrian** | 6 | 27 | 0.606 | 0.741 | 0.758 | 0.546 |
 | **All** | 361 | 530 | 0.878 | 0.773 | 0.849 | 0.666|
 ---
-## Inference Performance
-Average Inference Time: 21.58 ms/image \
-Frames Per Second (FPS): 46.34
 
