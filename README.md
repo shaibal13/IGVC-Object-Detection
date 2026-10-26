@@ -2,6 +2,11 @@
 
 This repository contains scripts for training and evaluating a custom YOLOv11 model on our own dataset. The model is used for the IGVC 2025 self-driving car model.
 
+[![Paper](https://img.shields.io/badge/IEEE%20MOST%202026-LightAD-00629B?style=for-the-badge&logo=ieee&logoColor=white)](https://doi.org/10.1109/MOST69733.2026.00015)
+
+> 📄 **This work is part of the LightAD paper.**
+> The object detection module in this repository is one component of the **LightAD** framework. If you find this work useful, please check out and cite our paper, [*LightAD: A Lightweight Vision-Based Autonomous Driving System*](https://doi.org/10.1109/MOST69733.2026.00015).
+
 ## 📂 Requirements
 
 - `Python 3.10`
@@ -210,4 +215,19 @@ Below are the summarized detection metrics:
 | **All** | 379 | 550 | 0.801 | 0.834 | 0.868 | 0.717 |
 
 
+---
 
+## 📖 Citation
+
+If you use this code or dataset, please cite the LightAD paper:
+
+```bibtex
+@INPROCEEDINGS{11527461,
+  author={Li, Yunge and Zhou, Zhaodong and Saha, Shaibal and Irshayyid, Ali and Chen, Keer and Xu, Lanyu and Chen, Jun},
+  booktitle={2026 IEEE 4th International Conference on Mobility, Operations, Services and Technologies (MOST)},
+  title={LightAD: A Lightweight Vision-Based Autonomous Driving System},
+  year={2026},
+  pages={45-56},
+  doi={10.1109/MOST69733.2026.00015}
+}
+```
